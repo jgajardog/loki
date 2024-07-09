@@ -1,0 +1,61 @@
+#/etc/loki/local-config.yaml
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+  grpc_server_max_recv_msg_size: 8388608
+
+common:
+  path_prefix: /loki
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+frontend:
+    address: 0.0.0.0
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: cassandra
+      object_store: cassandra
+      schema: v11
+      index:
+        prefix: index_
+        period: 72h
+      chunks:
+        prefix: chunk
+        period: 72h
+
+storage_config:
+  cassandra:
+    username: cassandra
+    password: password
+    addresses: cassandra.cassandra.svc.cluster.local
+    auth: false
+    keyspace: loki
+    timeout: 30s
+    connect_timeout: 30s
+    replication_factor: 1
+  grpc_store:
+    server_address: cassandra.cassandra.svc.cluster.local
+ruler:
+  alertmanager_url: http://localhost:9093
+
+analytics:
+  reporting_enabled: false
+
+table_manager:
+    chunk_tables_provisioning:
+      inactive_read_throughput: 1
+      inactive_write_throughput: 1
+      provisioned_read_throughput: 5
+      provisioned_write_throughput: 5
+    index_tables_provisioning:
+      inactive_read_throughput: 1
+      inactive_write_throughput: 1
+      provisioned_read_throughput: 5
+      provisioned_write_throughput: 5
+    retention_deletes_enabled: true
+    retention_period: 144h

@@ -1,5 +1,5 @@
 #!/bin/bash
-tagname=0.0.1
+tagname=0.0.4
 hostname=loki
 sudo docker stop $hostname
 sudo docker rm $hostname

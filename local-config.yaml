@@ -1,61 +1,94 @@
-#/etc/loki/local-config.yaml
 auth_enabled: false
 
 server:
   http_listen_port: 3100
-  grpc_listen_port: 9095
-  grpc_server_max_recv_msg_size: 8388608
+  http_listen_conn_limit: 0
+  grpc_server_max_recv_msg_size: 20485760  # 20 MB
+  grpc_server_max_send_msg_size: 20485760  # 20 MB
+  grpc_server_max_concurrent_streams: 500000
+  log_level: warn
 
-common:
-  path_prefix: /loki
-  replication_factor: 1
+distributor:
   ring:
     kvstore:
-      store: inmemory
-frontend:
-    address: 0.0.0.0
+      store: memberlist
+
+ingester:
+  wal:
+    enabled: false
+  lifecycler:
+    ring:
+      kvstore:
+        store: memberlist
+      replication_factor: 9
+    final_sleep: 0s
+  chunk_idle_period: 5m
+  chunk_retain_period: 2m #30s
+
+memberlist:
+  abort_if_cluster_join_fails: false
+
+  # Expose this port on all distributor, ingester
+  # and querier replicas.
+  bind_port: 7946
+
+  # You can use a headless k8s service for all distributor,
+  # ingester and querier components.
+  join_members:
+  - loki:7946
+
+  max_join_backoff: 2m #1m
+  max_join_retries: 10 #10
+  min_join_backoff: 10s #1s
 
 schema_config:
   configs:
-    - from: 2020-10-24
-      store: cassandra
-      object_store: cassandra
-      schema: v11
-      index:
-        prefix: index_
-        period: 72h
-      chunks:
-        prefix: chunk
-        period: 72h
+  - from: 2020-05-15
+    store: boltdb-shipper
+    object_store: s3
+    schema: v11
+    index:
+      prefix: index_
+      period: 24h
+    #chunks:
+    #    prefix: chunk
+    #    period: 168h
 
 storage_config:
-  cassandra:
-    username: cassandra
-    password: password
-    addresses: cassandra.cassandra.svc.cluster.local
-    auth: false
-    keyspace: loki
-    timeout: 30s
-    connect_timeout: 30s
-    replication_factor: 1
-  grpc_store:
-    server_address: cassandra.cassandra.svc.cluster.local
-ruler:
-  alertmanager_url: http://localhost:9093
+ boltdb_shipper:
+   active_index_directory: /loki/index
+   cache_location: /loki/index_cache
+   resync_interval: 20s #5s
+   shared_store: s3
 
-analytics:
-  reporting_enabled: false
+ aws:
+   #s3: s3://PASSWORD_HERE:USERNAME_HERE@HOST_HERE/loki-logs
+   s3: s3://loki:ClaroVtr.,123@minio.minio.svc.cluster.local.:9000/loki
 
-table_manager:
-    chunk_tables_provisioning:
-      inactive_read_throughput: 1
-      inactive_write_throughput: 1
-      provisioned_read_throughput: 5
-      provisioned_write_throughput: 5
-    index_tables_provisioning:
-      inactive_read_throughput: 1
-      inactive_write_throughput: 1
-      provisioned_read_throughput: 5
-      provisioned_write_throughput: 5
-    retention_deletes_enabled: true
-    retention_period: 144h
+   s3forcepathstyle: true
+
+limits_config:
+      retention_period: 24h
+      reject_old_samples: true
+      reject_old_samples_max_age: 6h
+      max_cache_freshness_per_query: 10m
+      split_queries_by_interval: 15m
+      # for big logs tune
+      per_stream_rate_limit: 1024M
+      per_stream_rate_limit_burst: 2048M
+      cardinality_limit: 1000000
+      ingestion_burst_size_mb: 6000
+      ingestion_rate_mb: 60000
+      max_entries_limit_per_query: 1000000
+      max_label_value_length: 20480
+      max_label_name_length: 10240
+      max_label_names_per_series: 300
+      max_global_streams_per_user: 1000000
+
+compactor:
+    working_directory: /loki/compactor
+    shared_store: s3
+    compaction_interval: 5m
+
+query_scheduler:
+    max_outstanding_requests_per_tenant: 1000
