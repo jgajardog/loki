@@ -68,23 +68,25 @@ storage_config:
    s3forcepathstyle: true
 
 limits_config:
-      retention_period: 24h
-      reject_old_samples: true
-      reject_old_samples_max_age: 6h
-      max_cache_freshness_per_query: 10m
-      split_queries_by_interval: 15m
-      max_concurrency: 64
-      # for big logs tune
-      per_stream_rate_limit: 1024M
-      per_stream_rate_limit_burst: 2048M
-      cardinality_limit: 1000000
-      ingestion_burst_size_mb: 6000
-      ingestion_rate_mb: 60000
-      max_entries_limit_per_query: 1000000
-      max_label_value_length: 20480
-      max_label_name_length: 10240
-      max_label_names_per_series: 300
-      max_global_streams_per_user: 1000000
+  retention_period: 24h
+  reject_old_samples: true
+  reject_old_samples_max_age: 6h
+  max_cache_freshness_per_query: 10m
+  split_queries_by_interval: 10m
+  #max_concurrency: 64
+  # for big logs tune
+  per_stream_rate_limit: 1024M
+  per_stream_rate_limit_burst: 2048M
+  cardinality_limit: 1000000
+  ingestion_burst_size_mb: 6000
+  ingestion_rate_mb: 60000
+  max_entries_limit_per_query: 1000000
+  max_label_value_length: 20480
+  max_label_name_length: 10240
+  max_label_names_per_series: 300
+  max_global_streams_per_user: 1000000
+  query_timeout: 3m
+  max_query_parallelism: 4
 
 compactor:
     working_directory: /loki/compactor
